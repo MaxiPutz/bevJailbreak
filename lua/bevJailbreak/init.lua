@@ -1,5 +1,9 @@
 local M = {}
 
+function M.setup()
+	print("bevJailbreak loaded")
+end
+
 local failover_file = ".bevContent"
 
 local function write_failover(content)
