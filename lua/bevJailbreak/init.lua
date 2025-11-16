@@ -1,12 +1,33 @@
 local M = {}
 
-function M.setup()
-	print("bevJailbreak loaded")
+local failover_file = ".bevContent"
+
+local function write_failover(content)
+	local f = io.open(failover_file, "w")
+	f:write(content)
+	f:close()
 end
 
-local json = vim.json or require("vim.json")
+local function read_failover()
+	local f = io.open(failover_file, "r")
+	if not f then
+		return nil
+	end
+	local data = f:read("*a")
+	f:close()
+	if data == "" then
+		return nil
+	end
+	return data
+end
 
-M.copy_project = function()
+local function clear_failover()
+	local f = io.open(failover_file, "w")
+	f:write("")
+	f:close()
+end
+
+function M.copy_project()
 	local handle = io.popen("git ls-files")
 	local files = handle:read("*a")
 	handle:close()
@@ -27,21 +48,49 @@ M.copy_project = function()
 	end
 
 	local encoded = vim.fn.json_encode(out)
-	vim.fn.setreg("+", encoded)
 
-	print("Copied " .. #out.files .. " files to clipboard as JSON.")
+	-- Versuche + Register zu beschreiben
+	local ok = pcall(vim.fn.setreg, "+", encoded)
+
+	if not ok then
+		print("[bevJailbreak] WARNING: '+ register not available. Using failover file: " .. failover_file)
+		write_failover(encoded)
+	else
+		local verify = vim.fn.getreg("+")
+		if not verify or verify == "" then
+			print("[bevJailbreak] WARNING: '+ register empty after write → Using failover file.")
+			write_failover(encoded)
+		else
+			print("Copied " .. #out.files .. " files to + register!")
+		end
+	end
 end
 
-M.paste_project = function()
+function M.paste_project()
 	local data = vim.fn.getreg("+")
-	if not data or data == "" then
-		print("Clipboard empty")
-		return
+
+	local source = ""
+
+	-- 1. Prüfen ob + Register verwendbar ist
+	if data and data ~= "" then
+		source = "+ register"
+	else
+		-- 2. Failover probieren
+		local fallback = read_failover()
+		if fallback then
+			print("[bevJailbreak] WARNING: '+ register empty. Using failover file: " .. failover_file)
+			data = fallback
+			source = "failover file"
+		else
+			print("[bevJailbreak] ERROR: Neither '+ register nor failover file contain data.")
+			return
+		end
 	end
 
+	-- JSON parsen
 	local ok, decoded = pcall(vim.fn.json_decode, data)
 	if not ok or not decoded or not decoded.files then
-		print("Clipboard does not contain valid project JSON")
+		print("[bevJailbreak] ERROR: Invalid JSON in " .. source)
 		return
 	end
 
@@ -51,24 +100,25 @@ M.paste_project = function()
 		local path = item.path
 		local content = item.content
 
-		-- ensure directory exists
 		local dir = path:match("(.*/)")
 		if dir then
 			vim.fn.mkdir(dir, "p")
 		end
 
-		-- write file
 		local f = io.open(path, "w")
 		if f then
 			f:write(content)
 			f:close()
 			created = created + 1
 		else
-			print("ERROR writing file: " .. path)
+			print("[bevJailbreak] ERROR: Cannot write file " .. path)
 		end
 	end
 
-	print("Reconstructed " .. created .. " files from JSON clipboard.")
+	print("Reconstructed " .. created .. " files from " .. source .. ".")
+
+	-- Failover aufräumen
+	clear_failover()
 end
 
 vim.api.nvim_create_user_command("BevCopy", function()
