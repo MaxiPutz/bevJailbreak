@@ -35,6 +35,17 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("BevPaste", function()
     M.paste_project()
   end, {})
+
+  vim.api.nvim_create_user_command("BevCopySelect", function()
+    require("bevJailbreak.copyProject").copy_project_select()
+  end, {})
+
+  vim.api.nvim_create_user_command("BevCopyFromQF", function()
+    require("bevJailbreak.ui.select_from_qf").open(function(files)
+      require("bevJailbreak.copyProject").copy_files(files)
+    end)
+  end, {})
+
 end
 
 
