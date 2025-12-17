@@ -32,9 +32,14 @@ The plugin exports **the current state of your files**, not the last commit, mak
 ## 📦 Installation (Lazy.nvim)
 
 ```lua
-{
+return {
   "maxiputz/bevJailbreak",
-  config = function()
-    require("bevJailbreak").setup()
-  end,
+  opts = {
+    failover_file = ".bevContent",
+    failover = true,
+    osc52 = true,
+    setreg = true,
+  }
 }
+```
+
