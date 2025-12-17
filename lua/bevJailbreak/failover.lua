@@ -82,4 +82,5 @@ function M.clear_failover()
   if f then f:write("") f:close() end
 end
 
+M.failover_file = config.failover_file
 return M
