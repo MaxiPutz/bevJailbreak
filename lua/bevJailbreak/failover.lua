@@ -1,7 +1,14 @@
 local M = {}
 
-local failover_file = ".bevContent"
-M.failover_file = failover_file
+
+local config = {
+  enabled = true,
+  failover_file = ".bevContent",
+}
+
+function M.setup(opts)
+  config = vim.tbl_deep_extend("force", config, opts or {})
+end
 
 -- --- helpers -------------------------------------------------
 
@@ -41,17 +48,25 @@ end
 -- --- public API ---------------------------------------------
 
 function M.write_failover(content)
-  local f = io.open(failover_file, "w")
+  if not config.enabled then
+    return false
+  end
+
+  local f = io.open(config.failover_file, "w")
   if not f then return false end
   f:write(content)
   f:close()
 
-  ensure_gitignore_entry(failover_file)
+  ensure_gitignore_entry(config.failover_file)
   return true
 end
 
 function M.read_failover()
-  local f = io.open(failover_file, "r")
+  if not config.enabled then
+    return false
+  end
+
+  local f = io.open(config.failover_file, "r")
   if not f then return nil end
   local data = f:read("*a")
   f:close()
@@ -59,7 +74,11 @@ function M.read_failover()
 end
 
 function M.clear_failover()
-  local f = io.open(failover_file, "w")
+  if not config.enabled then
+    return false
+  end
+
+  local f = io.open(config.failover_file, "w")
   if f then f:write("") f:close() end
 end
 
