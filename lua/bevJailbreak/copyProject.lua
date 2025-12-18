@@ -3,6 +3,7 @@ local failover = require("bevJailbreak.failover")
 local failover_file = failover.failover_file
 local write_failover = failover.write_failover
 local ui = require("bevJailbreak.ui.select_files")
+local ui_pick = require("bevJailbreak.ui.pick_files")
 
 local M = {}
 
@@ -80,6 +81,32 @@ function M.copy_project()
   else
   end
 
+end
+
+function M.copy_project_pic_select()
+  local files = git_files()
+
+  ui_pick.open(files, function(selected)
+    local out = { files = {} }
+
+    for _, file in ipairs(selected) do
+      local f = io.open(file, "r")
+      if f then
+        table.insert(out.files, {
+          path = file,
+          content = f:read("*a"),
+        })
+        f:close()
+      end
+    end
+
+    local encoded = vim.fn.json_encode(out)
+    local ok = clipboard.copy(encoded)
+
+    if not ok then
+      failover.write_failover(encoded)
+    end
+  end)
 end
 
 function M.copy_project_select()
