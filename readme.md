@@ -34,6 +34,10 @@ The plugin exports **the current state of your files**, not the last commit, mak
 ```lua
 return {
   "maxiputz/bevJailbreak",
+  dependencies = {
+    "nvim-telescope/telescope.nvim",
+    "nvim-lua/plenary.nvim",
+  },
   opts = {
     failover_file = ".bevContent",
     failover = true,
